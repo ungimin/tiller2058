@@ -1,0 +1,403 @@
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>창원여고 생태전환 - 학급 스마트팜 운영</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; margin: 0; background-color: #f4f7f6; display: flex; height: 100vh; }
+        .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; padding: 20px 0; }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.2rem; }
+        .menu-btn { background: none; border: none; color: white; padding: 15px 20px; text-align: left; font-size: 1.1rem; cursor: pointer; transition: 0.3s; }
+        .menu-btn:hover, .menu-btn.active { background-color: #34495e; border-left: 4px solid #1abc9c; }
+        .content { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
+        .header-area { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        button { cursor: pointer; border: none; border-radius: 4px; padding: 8px 15px; font-weight: bold; }
+        .btn-primary { background-color: #1abc9c; color: white; }
+        .btn-pink { background-color: #ff9a9e; color: white; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 350px; display: flex; flex-direction: column; gap: 10px; }
+        .modal-content input, .modal-content textarea { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
+        .log-grid, .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .gallery-item { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .gallery-item img { width: 100%; height: 200px; object-fit: cover; }
+        .gallery-info { padding: 15px; }
+        .badge { background: #eee; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; margin-right: 5px; }
+        #deadline-box { background: #ffeaa7; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <!-- 왼쪽 사이드바 -->
+    <div class="sidebar">
+        <h2>🌱 창원여고 생태전환 - 학급 스마트팜 운영</h2>
+        <button class="menu-btn active" onclick="showTab('dashboard')">📊 생태학급 일지</button>
+        <button class="menu-btn" onclick="showTab('gallery')">🌸 감성 시화전</button>
+        <div style="margin-top: auto; padding: 20px; text-align: center;">
+            <p id="login-status" style="font-size: 0.9rem;">관람 모드</p>
+            <button id="login-btn" class="btn-primary" onclick="openLoginModal()">학급 로그인</button>
+            <button id="logout-btn" class="btn-primary" style="display: none;" onclick="logout()">로그아웃</button>
+        </div>
+    </div>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <div class="content">
+        <!-- 1. 대시보드 탭 -->
+        <div id="dashboard" style="display: block;">
+            <div class="header-area">
+                <h2>📊 생태학급 일지 대시보드</h2>
+                <button id="write-log-btn" class="btn-primary" style="display: none;" onclick="openLogModal()">+ 오늘 일지 작성</button>
+            </div>
+            
+            <div id="deadline-box">
+                ⏰ 1차 시화전 & 생태일지 마감일: 2026년 8월 31일 (D-<span id="d-day"></span>)
+            </div>
+
+            <div id="crop-info-box" class="card" style="display: none; background-color: #e8f8f5;">
+                <h3 style="margin-top:0;">우리 반 재배 정보</h3>
+                <p><strong>키우는 작물:</strong> <span id="current-crop"></span> 
+                <button onclick="document.getElementById('editCropModal').style.display='flex'" style="background:none; border:none; cursor:pointer;">✏️수정</button></p>
+            </div>
+
+            <div class="log-grid" id="log-container">
+                <!-- 일지 데이터가 들어가는 곳 -->
+            </div>
+        </div>
+
+        <!-- 2. 시화전 탭 -->
+        <div id="gallery" style="display: none;">
+            <div class="header-area">
+                <h2>🌸 학급 감성 시화전</h2>
+                <button class="btn-pink" onclick="document.getElementById('galleryModal').style.display='flex'">+ 내 작품 전시하기</button>
+            </div>
+            <div class="gallery-grid" id="gallery-container">
+                <!-- 시화전 데이터가 들어가는 곳 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달: 로그인 -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h3>학급 로그인</h3>
+            <select id="login-class">
+                <option value="">학급을 선택하세요</option>
+                <option value="1-2">1학년 2반</option>
+                <option value="1-4">1학년 4반</option>
+                <option value="1-5">1학년 5반</option>
+                <option value="2-2">2학년 2반</option>
+                <option value="2-6">2학년 6반</option>
+                <option value="3-1">3학년 1반</option>
+                <option value="3-3">3학년 3반</option>
+            </select>
+            <input type="password" id="login-pw" placeholder="비밀번호">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-primary" style="flex:1;" onclick="login()">로그인</button>
+                <button style="flex:1;" onclick="document.getElementById('loginModal').style.display='none'">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달: 최초 비밀번호 변경 -->
+    <div id="pwChangeModal" class="modal">
+        <div class="modal-content">
+            <h3>비밀번호 변경 (필수)</h3>
+            <p style="font-size: 0.8rem; color: #666;">보안을 위해 초기 비밀번호를 변경해주세요.</p>
+            <input type="password" id="new-pw" placeholder="새 비밀번호">
+            <input type="password" id="new-pw-confirm" placeholder="새 비밀번호 확인">
+            <button class="btn-primary" style="margin-top: 10px;" onclick="changePassword()">변경 완료</button>
+        </div>
+    </div>
+
+    <!-- 모달: 작물 수정 -->
+    <div id="editCropModal" class="modal">
+        <div class="modal-content">
+            <h3>재배 작물 수정</h3>
+            <input type="text" id="edit-crop-name" placeholder="현재 키우는 작물 이름">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-primary" style="flex:1;" onclick="saveCrop()">저장</button>
+                <button style="flex:1;" onclick="document.getElementById('editCropModal').style.display='none'">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달: 일지 작성 -->
+    <div id="logModal" class="modal">
+        <div class="modal-content">
+            <h3>오늘의 일지 작성</h3>
+            <label>작성일 (수정 불가)</label>
+            <input type="text" id="log-date" readonly style="background-color: #eee;">
+            <input type="number" id="log-temp" placeholder="현재 온도 (°C)">
+            <input type="number" id="log-humid" placeholder="현재 습도 (%)">
+            <select id="log-water">
+                <option value="">수위 상태 선택</option>
+                <option value="충분함">충분함 (MAX)</option>
+                <option value="보통">보통</option>
+                <option value="보충 필요">보충 필요 (바닥)</option>
+            </select>
+            <textarea id="log-memo" rows="3" placeholder="오늘 어떤 관리를 했나요? 식물이 얼마나 자랐나요?"></textarea>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-primary" style="flex:1;" onclick="submitLog()">등록</button>
+                <button style="flex:1;" onclick="document.getElementById('logModal').style.display='none'">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달: 시화전 작성 (로그인 불필요) -->
+    <div id="galleryModal" class="modal">
+        <div class="modal-content" style="width: 400px;">
+            <h3>새 시화전 작품 등록</h3>
+            <input type="text" id="gal-student-id" placeholder="학번 (예: 10101)">
+            <input type="text" id="gal-name" placeholder="이름">
+            <label style="font-size: 0.9rem; margin-top: 5px;">배경 사진 첨부 (PC/스마트폰)</label>
+            <input type="file" id="gal-image" accept="image/*">
+            <textarea id="gal-text" rows="4" placeholder="식물을 키우며 느낀 감정을 자유롭게 적어보세요."></textarea>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-pink" style="flex:1;" onclick="submitGallery()">등록하기</button>
+                <button style="flex:1;" onclick="document.getElementById('galleryModal').style.display='none'">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 데이터 관리 (localStorage 사용) ---
+        // 학급 데이터 초기화 (1학년2반=1020, 1학년4반=1040 ...)
+        const defaultAccounts = {
+            "1-2": { pw: "1020", crop: "쌈추", isFirstLogin: true },
+            "1-4": { pw: "1040", crop: "허브류", isFirstLogin: true },
+            "1-5": { pw: "1050", crop: "엽채류", isFirstLogin: true },
+            "2-2": { pw: "2020", crop: "허브류(바질, 페퍼민트)", isFirstLogin: true },
+            "2-6": { pw: "2060", crop: "루꼴라, 바질", isFirstLogin: true },
+            "3-1": { pw: "3010", crop: "엽채류", isFirstLogin: true },
+            "3-3": { pw: "3030", crop: "바질, 쌈추", isFirstLogin: true }
+        };
+
+        if(!localStorage.getItem('accounts')) localStorage.setItem('accounts', JSON.stringify(defaultAccounts));
+        if(!localStorage.getItem('logs')) localStorage.setItem('logs', JSON.stringify([]));
+        if(!localStorage.getItem('gallery')) localStorage.setItem('gallery', JSON.stringify([]));
+
+        let currentClass = null;
+
+        // --- 유틸리티 ---
+        function getTodayString() {
+            const today = new Date();
+            return `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+        }
+
+        // D-Day 계산 (2026-08-31)
+        const deadline = new Date("2026-08-31");
+        const today = new Date();
+        const dDay = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+        document.getElementById('d-day').innerText = dDay > 0 ? dDay : "Day";
+
+        // --- 화면 제어 ---
+        function showTab(tabName) {
+            document.getElementById('dashboard').style.display = tabName === 'dashboard' ? 'block' : 'none';
+            document.getElementById('gallery').style.display = tabName === 'gallery' ? 'block' : 'none';
+            document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            if(tabName === 'dashboard') renderLogs();
+            if(tabName === 'gallery') renderGallery();
+        }
+
+        // --- 로그인 및 계정 제어 ---
+        function openLoginModal() { document.getElementById('loginModal').style.display = 'flex'; }
+        
+        function login() {
+            const classId = document.getElementById('login-class').value;
+            const pw = document.getElementById('login-pw').value;
+            const accounts = JSON.parse(localStorage.getItem('accounts'));
+
+            if(!classId || !pw) return alert("학급과 비밀번호를 입력해주세요.");
+            
+            if(accounts[classId].pw === pw) {
+                currentClass = classId;
+                document.getElementById('loginModal').style.display = 'none';
+                document.getElementById('login-pw').value = '';
+                
+                if(accounts[classId].isFirstLogin) {
+                    document.getElementById('pwChangeModal').style.display = 'flex';
+                } else {
+                    applyLoginState();
+                }
+            } else {
+                alert("비밀번호가 틀렸습니다.");
+            }
+        }
+
+        function changePassword() {
+            const newPw = document.getElementById('new-pw').value;
+            const newPwConf = document.getElementById('new-pw-confirm').value;
+            
+            if(newPw.length < 4) return alert("비밀번호는 4자리 이상 설정해주세요.");
+            if(newPw !== newPwConf) return alert("비밀번호 확인이 일치하지 않습니다.");
+
+            const accounts = JSON.parse(localStorage.getItem('accounts'));
+            accounts[currentClass].pw = newPw;
+            accounts[currentClass].isFirstLogin = false;
+            localStorage.setItem('accounts', JSON.stringify(accounts));
+            
+            alert("비밀번호가 변경되었습니다!");
+            document.getElementById('pwChangeModal').style.display = 'none';
+            applyLoginState();
+        }
+
+        function applyLoginState() {
+            const accounts = JSON.parse(localStorage.getItem('accounts'));
+            document.getElementById('login-status').innerText = `접속 중: ${currentClass}반`;
+            document.getElementById('login-btn').style.display = 'none';
+            document.getElementById('logout-btn').style.display = 'inline-block';
+            document.getElementById('write-log-btn').style.display = 'inline-block';
+            
+            document.getElementById('crop-info-box').style.display = 'block';
+            document.getElementById('current-crop').innerText = accounts[currentClass].crop;
+        }
+
+        function logout() {
+            currentClass = null;
+            document.getElementById('login-status').innerText = '관람 모드';
+            document.getElementById('login-btn').style.display = 'inline-block';
+            document.getElementById('logout-btn').style.display = 'none';
+            document.getElementById('write-log-btn').style.display = 'none';
+            document.getElementById('crop-info-box').style.display = 'none';
+            alert("로그아웃 되었습니다.");
+        }
+
+        function saveCrop() {
+            const newCrop = document.getElementById('edit-crop-name').value;
+            if(!newCrop) return alert("작물 이름을 입력하세요.");
+            
+            const accounts = JSON.parse(localStorage.getItem('accounts'));
+            accounts[currentClass].crop = newCrop;
+            localStorage.setItem('accounts', JSON.stringify(accounts));
+            
+            document.getElementById('current-crop').innerText = newCrop;
+            document.getElementById('editCropModal').style.display = 'none';
+            document.getElementById('edit-crop-name').value = '';
+            alert("재배 작물이 수정되었습니다.");
+        }
+
+        // --- 일지 제어 ---
+        function openLogModal() {
+            document.getElementById('log-date').value = getTodayString(); // 오늘 날짜로 고정
+            document.getElementById('logModal').style.display = 'flex';
+        }
+
+        function submitLog() {
+            const temp = document.getElementById('log-temp').value;
+            const humid = document.getElementById('log-humid').value;
+            const water = document.getElementById('log-water').value;
+            const memo = document.getElementById('log-memo').value;
+
+            if(!temp || !humid || !water || !memo) return alert("모든 항목을 입력해주세요.");
+
+            const accounts = JSON.parse(localStorage.getItem('accounts'));
+            const logs = JSON.parse(localStorage.getItem('logs'));
+            
+            logs.unshift({
+                classId: currentClass,
+                crop: accounts[currentClass].crop,
+                date: getTodayString(),
+                temp: temp,
+                humid: humid,
+                water: water,
+                memo: memo
+            });
+
+            localStorage.setItem('logs', JSON.stringify(logs));
+            document.getElementById('logModal').style.display = 'none';
+            
+            // 폼 초기화
+            document.getElementById('log-temp').value = '';
+            document.getElementById('log-humid').value = '';
+            document.getElementById('log-water').value = '';
+            document.getElementById('log-memo').value = '';
+            
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const logs = JSON.parse(localStorage.getItem('logs'));
+            const container = document.getElementById('log-container');
+            container.innerHTML = '';
+            
+            if(logs.length === 0) container.innerHTML = '<p>아직 작성된 일지가 없습니다.</p>';
+
+            logs.forEach(log => {
+                container.innerHTML += `
+                    <div class="card">
+                        <div style="font-size:0.8rem; color:#888;">${log.date}</div>
+                        <h3 style="margin:5px 0;">${log.classId}반 일지</h3>
+                        <p style="margin:5px 0; font-size:0.9rem;"><span class="badge">${log.crop}</span></p>
+                        <p style="font-size:0.9rem;">🌡️ 온도: ${log.temp}°C | 💧 습도: ${log.humid}%<br>🌊 수위: ${log.water}</p>
+                        <p style="background:#f9f9f9; padding:10px; border-radius:4px; font-size:0.9rem;">${log.memo}</p>
+                    </div>
+                `;
+            });
+        }
+
+        // --- 시화전 제어 (로그인 불필요) ---
+        function submitGallery() {
+            const studentId = document.getElementById('gal-student-id').value;
+            const name = document.getElementById('gal-name').value;
+            const text = document.getElementById('gal-text').value;
+            const fileInput = document.getElementById('gal-image');
+
+            if(!studentId || !name || !text || fileInput.files.length === 0) {
+                return alert("모든 항목을 입력하고 사진을 첨부해주세요.");
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            // 이미지를 브라우저에 표시하기 위해 Data URL로 변환
+            reader.onload = function(e) {
+                const gallery = JSON.parse(localStorage.getItem('gallery'));
+                gallery.unshift({
+                    studentId: studentId,
+                    name: name,
+                    text: text,
+                    image: e.target.result // 변환된 이미지 데이터
+                });
+
+                localStorage.setItem('gallery', JSON.stringify(gallery));
+                document.getElementById('galleryModal').style.display = 'none';
+                
+                // 폼 초기화
+                document.getElementById('gal-student-id').value = '';
+                document.getElementById('gal-name').value = '';
+                document.getElementById('gal-text').value = '';
+                fileInput.value = '';
+
+                renderGallery();
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        function renderGallery() {
+            const gallery = JSON.parse(localStorage.getItem('gallery'));
+            const container = document.getElementById('gallery-container');
+            container.innerHTML = '';
+            
+            if(gallery.length === 0) container.innerHTML = '<p>아직 전시된 작품이 없습니다. 첫 작품의 주인공이 되어보세요!</p>';
+
+            gallery.forEach(item => {
+                container.innerHTML += `
+                    <div class="gallery-item">
+                        <img src="${item.image}" alt="시화전 이미지">
+                        <div class="gallery-info">
+                            <span class="badge">학번: ${item.studentId}</span> <strong>${item.name}</strong>
+                            <p style="margin-top:10px; font-style:italic; color:#555;">"${item.text}"</p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 페이지 로드 시 초기 렌더링
+        window.onload = () => {
+            renderLogs();
+            renderGallery();
+        };
+    </script>
+</body>
+</html>
