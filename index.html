@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>창원여고 생태전환 - 학급 스마트팜 운영</title>
+    <style>
+        /* 기본 리셋 및 폰트 */
+        * { box-sizing: border-box; }
+        body { font-family: 'Malgun Gothic', sans-serif; margin: 0; background-color: #f4f7f6; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* PC 사이드바 스타일 */
+        .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; padding: 20px 0; z-index: 10; }
+        .sidebar-title { text-align: center; margin-bottom: 20px; font-size: 1.2rem; padding: 0 10px; }
+        .nav-menu { display: flex; flex-direction: column; width: 100%; }
+        .menu-btn { background: none; border: none; color: white; padding: 15px 20px; text-align: left; font-size: 1.1rem; cursor: pointer; transition: 0.3s; border-left: 4px solid transparent; }
+        .menu-btn:hover, .menu-btn.active { background-color: #34495e; border-left: 4px solid #1abc9c; }
+        .auth-area { margin-top: auto; padding: 20px; text-align: center; border-top: 1px solid #34495e; }
+        
+        /* 메인 컨텐츠 영역 */
+        .content { flex: 1; padding: 30px; overflow-y: auto; position: relative; background-color: #f4f7f6; height: 100%; }
+        .header-area { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 15px; margin-bottom: 20px; }
+        .header-area h2 { margin: 0; font-size: 1.5rem; color: #2c3e50; }
+        
+        /* 카드 및 그리드 스타일 */
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; position: relative; }
+        .log-grid, .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        
+        /* 마감일 및 달력 스타일 */
+        .deadline-container { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .deadline-box { flex: 1; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; min-width: 200px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .deadline-gallery { background: #ffe4e6; color: #e84393; }
+        .deadline-log { background: #e8f8f5; color: #16a085; }
+        
+        .calendar-widget { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .calendar-header h4 { margin: 0; font-size: 1.2rem; color: #2c3e50; }
+        .calendar-header button { background: none; border: none; cursor: pointer; font-size: 1.2rem; color: #7f8c8d; padding: 0 10px; }
+        .calendar-days { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; font-size: 0.9rem; color: #7f8c8d; margin-bottom: 10px; }
+        .calendar-dates { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 4px; }
+        .cal-date { padding: 8px 0; border-radius: 6px; font-size: 0.95rem; color: #333; }
+        .cal-date.today { background-color: #f1f2f6; font-weight: bold; border: 1px solid #ccc; }
+        .cal-date.event-gallery { background-color: #ff9a9e; color: white; font-weight: bold; box-shadow: 0 2px 4px rgba(255,154,158,0.4); }
+        .cal-date.event-log { background-color: #1abc9c; color: white; font-weight: bold; box-shadow: 0 2px 4px rgba(26,188,156,0.4); }
+        .calendar-legend { display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 0.85rem; color: #555; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+        .gallery-dot { background-color: #ff9a9e; }
+        .log-dot { background-color: #1abc9c; }
+
+        /* 시화전 갤러리 아이템 */
+        .gallery-item { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; flex-direction: column; position: relative; }
+        .gallery-item img { width: 100%; height: 200px; object-fit: cover; }
+        .gallery-info { padding: 15px; flex: 1; display: flex; flex-direction: column; }
+        .action-btns { text-align: right; margin-top: 10px; border-top: 1px dashed #eee; padding-top: 10px; }
+        .action-btns button { padding: 5px 10px; font-size: 0.85rem; margin-left: 5px; }
+        
+        /* 공통 요소 */
+        button { cursor: pointer; border: none; border-radius: 6px; padding: 10px 15px; font-weight: bold; transition: 0.2s; }
+        button:active { transform: scale(0.98); }
+        .btn-primary { background-color: #1abc9c; color: white; }
+        .btn-primary:hover { background-color: #16a085; }
+        .btn-pink { background-color: #ff9a9e; color: white; }
+        .btn-pink:hover { background-color: #ff7e84; }
+        .btn-outline { background-color: transparent; border: 1px solid #ccc; color: #333; }
+        .btn-text-blue { background: none; border: none; color: #3498db; cursor: pointer; padding: 0; font-weight: normal; }
+        .btn-text-red { background: none; border: none; color: #e74c3c; cursor: pointer; padding: 0; font-weight: normal; }
+        .badge { background: #eee; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; margin-right: 5px; display: inline-block; }
+        
+        /* 모달 스타일 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 12px; max-height: 90vh; overflow-y: auto; }
+        .modal-content h3 { margin-top: 0; margin-bottom: 5px; color: #2c3e50; }
+        .modal-content input, .modal-content textarea, .modal-content select { padding: 10px; border: 1px solid #ddd; border-radius: 6px; width: 100%; font-size: 1rem; }
+        .modal-content textarea { resize: vertical; }
+        
+        /* 토스트 알림 메시지 스타일 */
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 12px 20px; position: fixed; z-index: 2000; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 1rem; opacity: 0; transition: opacity 0.3s, bottom 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+
+        /* =========================================
+           📱 모바일 반응형 웹 최적화 (768px 이하)
+           ========================================= */
+        @media screen and (max-width: 768px) {
+            body { flex-direction: column; overflow: auto; height: auto; min-height: 100vh; }
+            .sidebar { width: 100%; padding: 15px 0 0 0; position: sticky; top: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+            .sidebar-title { margin-bottom: 10px; font-size: 1.1rem; }
+            .nav-menu { flex-direction: row; justify-content: space-around; }
+            .menu-btn { padding: 12px 10px; text-align: center; font-size: 1rem; border-left: none; border-bottom: 3px solid transparent; flex: 1; border-radius: 0; }
+            .menu-btn:hover, .menu-btn.active { border-left: none; border-bottom: 3px solid #1abc9c; background-color: transparent; }
+            .auth-area { padding: 10px; display: flex; justify-content: center; align-items: center; gap: 15px; border-top: none; background-color: #243442; }
+            .auth-area p { margin: 0; }
+            .content { padding: 15px; height: auto; overflow-y: visible; }
+            .header-area { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .header-area h2 { font-size: 1.3rem; }
+            .header-area button { width: 100%; }
+            .deadline-container { flex-direction: column; gap: 10px; }
+            .modal { padding: 15px; }
+            .modal-content { padding: 20px; }
+            #toast { width: 90%; min-width: auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 사이드바 -->
+    <div class="sidebar">
+        <h2 class="sidebar-title">🌱 창원여고 생태전환<br><span style="font-size:0.9rem; font-weight:normal; color:#bdc3c7;">학급 스마트팜 운영</span></h2>
+        <div class="nav-menu">
+            <button class="menu-btn active" onclick="showTab('dashboard')">📊 생태학급 일지</button>
+            <button class="menu-btn" onclick="showTab('gallery')">🌸 감성 시화전</button>
+        </div>
+        <div class="auth-area">
+            <p id="login-status" style="font-size: 0.9rem; color: #bdc3c7;">관람 모드</p>
+            <button id="login-btn" class="btn-primary" onclick="openLoginModal()" style="padding: 6px 12px; font-size: 0.9rem;">학급 로그인</button>
+            <button id="logout-btn" class="btn-outline" style="display: none; padding: 6px 12px; font-size: 0.9rem; color: white; border-color: white;" onclick="logout()">로그아웃</button>
+        </div>
+    </div>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <div class="content">
+        <!-- 1. 대시보드 탭 -->
+        <div id="dashboard" style="display: block;">
+            <div class="header-area">
+                <h2>📊 생태학급 일지 대시보드</h2>
+                <button id="write-log-btn" class="btn-primary" style="display: none;" onclick="openLogModal()">+ 오늘 일지 작성</button>
+            </div>
+            
+            <!-- 마감일 박스 컨테이너 -->
+            <div class="deadline-container">
+                <div class="deadline-box deadline-gallery">
+                    🌸 1차 시화전 마감: 8월 24일<br>
+                    <span style="font-size: 0.9rem; font-weight: normal;">(D-<span id="d-day-gal"></span>)</span>
+                </div>
+                <div class="deadline-box deadline-log">
+                    📊 생태일지 마감: 8월 31일<br>
+                    <span style="font-size: 0.9rem; font-weight: normal;">(D-<span id="d-day-log"></span>)</span>
+                </div>
+            </div>
+
+            <!-- 미니 달력 위젯 -->
+            <div class="calendar-widget">
+                <div class="calendar-header">
+                    <button onclick="changeMonth(-1)">&#10094;</button>
+                    <h4 id="calendar-month-year">2026년 8월</h4>
+                    <button onclick="changeMonth(1)">&#10095;</button>
+                </div>
+                <div class="calendar-days">
+                    <span style="color:#e74c3c;">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span style="color:#3498db;">토</span>
+                </div>
+                <div class="calendar-dates" id="calendar-dates">
+                    <!-- JS로 달력 날짜 렌더링 -->
+                </div>
+                <div class="calendar-legend">
+                    <span class="legend-item"><span class="dot gallery-dot"></span>시화전 마감 (8/24)</span>
+                    <span class="legend-item"><span class="dot log-dot"></span>일지 마감 (8/31)</span>
+                </div>
+            </div>
+
+            <div id="crop-info-box" class="card" style="display: none; background-color: #e8f8f5; border-left: 4px solid #1abc9c;">
+                <h3 style="margin-top:0; color: #16a085;">우리 반 재배 정보</h3>
+                <p style="margin-bottom: 0;"><strong>키우는 작물:</strong> <span id="current-crop"></span> 
+                <button onclick="document.getElementById('editCropModal').style.display='flex'" style="background:none; border:none; color: #7f8c8d; cursor:pointer; padding: 5px; margin-left: 5px;">✏️수정</button></p>
+            </div>
+
+            <div class="log-grid" id="log-container">
+                <!-- 일지 데이터가 들어가는 곳 -->
+            </div>
+        </div>
+
+        <!-- 2. 시화전 탭 -->
+        <div id="gallery" style="display: none;">
+            <div class="header-area">
+                <h2>🌸 학급 감성 시화전</h2>
+                <button class="btn-pink" onclick="openGalleryModal()">+ 내 작품 전시하기</button>
+            </div>
+            <div class="gallery-grid" id="gallery-container">
+                <!-- 시화전 데이터가 들어가는 곳 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 토스트 알림창 -->
+    <div id="toast">알림 메시지</div>
+
+    <!-- 모달: 로그인 -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h3>학급 로그인</h3>
+            <select id="login-class">
+                <option value="">학급을 선택하세요</option>
+                <option value="admin">👑 관리자 계정</option>
+                <option value="1-2">1학년 2반</option>
+                <option value="1-4">1학년 4반</option>
+                <option value="1-5">1학년 5반</option>
+                <option value="2-2">2학년 2반</option>
+                <option value="2-6">2학년 6반</option>
+                <option value="3-1">3학년 1반</option>
+                <option value="3-3">3학년 3반</option>
+            </select>
+            <input type="password" id="login-pw" placeholder="비밀번호">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-outline" style="flex:1;" onclick="document.getElementById('loginModal').style.display='none'">취소</button>
+                <button class="btn-primary" style="flex:1;" onclick="login()">로그인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달: 최초 비밀번호 변경 -->
+    <div id="pwChangeModal" class="modal">
+        <div class="modal-content">
+            <h3>비밀번호 변경 (필수)</h3>
+            <p style="font-size: 0.85rem; color: #e74c3c; margin-top: 0;">보안을 위해 초기 비밀번호를 변경해주세요.</p>
+            <input type="password" id="new-pw" placeholder="새 비밀번호 (4자리 이상)">
+            <input type="password" id="new-pw-confirm" placeholder="새 비밀번호 확인">
+            <button class="btn-primary" style="margin-top: 10px;" onclick="changePassword()">변경 완료</button>
+        </div>
+    </div>
+
+    <!-- 모달: 작물 수정 -->
+    <div id="editCropModal" class="modal">
+        <div class="modal-content">
+            <h3>재배 작물 수정</h3>
+            <label style="font-size: 0.9rem; color: #555;">현재 키우는 작물 이름</label>
+            <input type="text" id="edit-crop-name" placeholder="예: 상추, 바질 등">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-outline" style="flex:1;" onclick="document.getElementById('editCropModal').style.display='none'">취소</button>
+                <button class="btn-primary" style="flex:1;" onclick="saveCrop()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달: 일지 작성 및 수정 -->
+    <div id="logModal" class="modal">
+        <div class="modal-content">
+            <h3 id="log-modal-title">오늘의 일지 작성</h3>
+            <input type="hidden" id="log-edit-id"> 
+            <label style="font-size: 0.9rem; color: #555;">작성일 (수정 불가)</label>
+            <input type="text" id="log-date" readonly style="background-color: #eee; color: #555;">
+            
+            <div style="display: flex; gap: 10px;">
+                <div style="flex:1;">
+                    <label style="font-size: 0.9rem; color: #555;">온도 (°C)</label>
+                    <input type="number" id="log-temp" placeholder="숫자만">
+                </div>
+                <div style="flex:1;">
+                    <label style="font-size: 0.9rem; color: #555;">습도 (%)</label>
+                    <input type="number" id="log-humid" placeholder="숫자만">
+                </div>
+            </div>
+            
+            <label style="font-size: 0.9rem; color: #555;">수위 상태</label>
+            <select id="log-water">
+                <option value="">선택하세요</option>
+                <option value="충분함">충분함 (MAX)</option>
+                <option value="보통">보통</option>
+                <option value="보충 필요">보충 필요 (바닥)</option>
+            </select>
+            
+            <label style="font-size: 0.9rem; color: #555;">관찰 내용 및 조치사항</label>
+            <textarea id="log-memo" rows="3" placeholder="오늘 어떤 관리를 했나요? 식물이 얼마나 자랐나요?"></textarea>
+            
+            <div style="display: flex; gap: 10px; margin-top: 5px;">
+                <button class="btn-outline" style="flex:1;" onclick="document.getElementById('logModal').style.display='none'">취소</button>
+                <button class="btn-primary" style="flex:1;" onclick="submitLog()">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달: 시화전 작성 및 수정 -->
+    <div id="galleryModal" class="modal">
+        <div class="modal-content">
+            <h3 id="gal-modal-title">새 시화전 작품 등록</h3>
+            <input type="hidden" id="gal-edit-id"> 
+            
+            <div style="display: flex; gap: 10px;">
+                <div style="flex:1;">
+                    <label style="font-size: 0.9rem; color: #555;">학번</label>
+                    <input type="text" id="gal-student-id" placeholder="예: 10101">
+                </div>
+                <div style="flex:1;">
+                    <label style="font-size: 0.9rem; color: #555;">이름</label>
+                    <input type="text" id="gal-name" placeholder="홍길동">
+                </div>
+            </div>
+            
+            <label style="font-size: 0.9rem; color: #555;">배경 사진 첨부 (수정 시 미첨부하면 기존 유지)</label>
+            <input type="file" id="gal-image" accept="image/*">
+            
+            <label style="font-size: 0.9rem; color: #555;">감수성 글귀</label>
+            <textarea id="gal-text" rows="3" placeholder="식물을 키우며 느낀 감정을 자유롭게 적어보세요."></textarea>
+            
+            <label style="font-size: 0.9rem; color: #e74c3c; font-weight:bold;">게시글 암호 (수정/삭제 시 필요)</label>
+            <input type="password" id="gal-pw" placeholder="비밀번호 설정">
+
+            <div style="display: flex; gap: 10px; margin-top: 5px;">
+                <button class="btn-outline" style="flex:1;" onclick="document.getElementById('galleryModal').style.display='none'">취소</button>
+                <button class="btn-pink" style="flex:1;" onclick="submitGallery()">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 토스트 알림창 ---
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.innerText = message;
+            toast.className = "show";
+            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        // --- 초기 데이터 설정 ---
+        const defaultAccounts = {
+            "admin": { pw: "admin0000", crop: "모든 작물 (관리자 권한)", isFirstLogin: true },
+            "1-2": { pw: "1020", crop: "쌈추", isFirstLogin: true },
+            "1-4": { pw: "1040", crop: "허브류", isFirstLogin: true },
+            "1-5": { pw: "1050", crop: "엽채류", isFirstLogin: true },
+            "2-2": { pw: "2020", crop: "허브류(바질, 페퍼민트)", isFirstLogin: true },
+            "2-6": { pw: "2060", crop: "루꼴라, 바질", isFirstLogin: true },
+            "3-1": { pw: "3010", crop: "엽채류", isFirstLogin: true },
+            "3-3": { pw: "3030", crop: "바질, 쌈추", isFirstLogin: true }
+        };
+
+        let savedAccounts = JSON.parse(localStorage.getItem('accounts')) || {};
+        if (Object.keys(savedAccounts).length === 0) {
+            savedAccounts = defaultAccounts;
+        } else if (!savedAccounts["admin"]) {
+            savedAccounts["admin"] = defaultAccounts["admin"];
+        }
+        localStorage.setItem('accounts', JSON.stringify(savedAccounts));
+
+        let savedLogs = JSON.parse(localStorage.getItem('logs')) || [];
+        savedLogs = savedLogs.map(l => l.id ? l : { ...l, id: Date.now() + Math.random() });
+        localStorage.setItem('logs', JSON.stringify(savedLogs));
+
+        let savedGallery = JSON.parse(localStorage.getItem('gallery')) || [];
+        savedGallery = savedGallery.map(g => g.id ? g : { ...g, id: Date.now() + Math.random(), password: '0000' });
+        localStorage.setItem('gallery', JSON.stringify(savedGallery));
+
+        let currentClass = null;
+
+        // --- 날짜 계산 및 달력 렌더링 ---
+        function getTodayString() {
+            const today = new Date();
+            return `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+        }
+
+        function calculateDDays() {
+            const galDeadline = new Date("2026-08-24T23:59:59");
+            const logDeadline = new Date("2026-08-31T23:59:59");
+            const today = new Date();
+            
+            const dDayGal = Math.ceil((galDeadline - today) / (1000 * 60 * 60 * 24));
+            const dDayLog = Math.ceil((logDeadline - today) / (1000 * 60 * 60 * 24));
+            
+            document.getElementById('d-day-gal').innerText = dDayGal > 0 ? dDayGal : (dDayGal === 0 ? "Day" : "마감");
+            document.getElementById('d-day-log').innerText = dDayLog > 0 ? dDayLog : (dDayLog === 0 ? "Day" : "마감");
+        }
+
+        // 달력 상태 관리 변수 (기본값: 2026년 8월)
+        let calYear = 2026;
+        let calMonth = 7; // 0-based (7 = 8월)
+
+        function renderCalendar(year, month) {
+            const datesContainer = document.getElementById('calendar-dates');
+            document.getElementById('calendar-month-year').innerText = `${year}년 ${month + 1}월`;
+            datesContainer.innerHTML = '';
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const todayObj = new Date();
+
+            // 빈 칸 채우기
+            for (let i = 0; i < firstDay; i++) {
+                datesContainer.innerHTML += `<div></div>`;
+            }
+
+            // 날짜 채우기
+            for (let i = 1; i <= daysInMonth; i++) {
+                let classNames = 'cal-date';
+                
+                // 마감일 형광펜 하이라이트 (8/24, 8/31)
+                if (year === 2026 && month === 7 && i === 24) classNames += ' event-gallery';
+                if (year === 2026 && month === 7 && i === 31) classNames += ' event-log';
+                
+                // 오늘 날짜 표시
+                if (year === todayObj.getFullYear() && month === todayObj.getMonth() && i === todayObj.getDate()) {
+                    classNames += ' today';
+                }
+
+                datesContainer.innerHTML += `<div class="${classNames}">${i}</div>`;
+            }
+        }
+
+        function changeMonth(offset) {
+            calMonth += offset;
+            if (calMonth > 11) { calMonth = 0; calYear++; } 
+            else if (calMonth < 0) { calMonth = 11; calYear--; }
+            renderCalendar(calYear, calMonth);
+        }
+
+        // --- 화면 제어 ---
+        function showTab(tabName) {
+            document.getElementById('dashboard').style.display = tabName === 'dashboard' ? 'block' : 'none';
+            document.getElementById('gallery').style.display = tabName === 'gallery' ? 'block' : 'none';
+            document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.querySelector('.content').scrollTo(0,0);
+            window.scrollTo(0,0);
+
+            if(tabName === 'dashboard') renderLogs();
+            if(tabName === 'gallery') renderGallery();
+        }
+
+        // --- 로그인 및 계정 제어 ---
+        function openLoginModal() { document.getElementById('loginModal').style.display = 'flex'; }
+        
+        function login() {
+            const classId = document.getElementById('login-class').value;
+            const pw = document.getElementById('login-pw').value;
+            const accounts = JSON.parse(localStorage.getItem('accounts'));
+
+            if(!classId || !pw) return showToast("⚠️ 학급과 비밀번호를 모두 입력해주세요.");
+            
+            if(accounts[classId].pw === pw) {
+                currentClass = classId;
+                document.getElementById('loginModal').style.display = 'none';
+                document.getElementById('login-pw').value = '';
+                
+                if(accounts[classId].isFirstLogin) {
+                    document.getElementById('pwChangeModal').style.display = 'flex';
+                } else {
+                    applyLoginState();
+                    showToast(`✅ ${classId === 'admin' ? '관리자' : classId + '반'} 로그인 되었습니다.`);
+                }
+            } else {
+                showToast("❌ 비밀번호가 일치하지 않습니다.");
+            }
+        }
+
+        function changePassword() {
+            const newPw = document.getElementById('new-pw').value;
+            const newPwConf = document.getElementById('new-pw-confirm').value;
+            
+            if(newPw.length < 4) return showToast("⚠️ 비밀번호는 4자리 이상으로 설정해주세요.");
+            if(newPw !== newPwConf) return showToast("⚠️ 새 비밀번호 확인이 일치하지 않습니다.");
+
+            const accounts = JSON.parse(localStorage.getItem('accounts'));
+            accounts[currentClass].pw = newPw;
+            accounts[currentClass].isFirstLogin = false;
+            localStorage.setItem('accounts', JSON.stringify(accounts));
+            
+            document.getElementById('pwChangeModal').style.display = 'none';
+            applyLoginState();
+            showToast("✅ 비밀번호가 성공적으로 변경되었습니다!");
+        }
+
+        function applyLoginState() {
+            const accounts = JSON.parse(localStorage.getItem('accounts'));
+            const statusText = currentClass === 'admin' ? '👑 관리자' : `${currentClass}반`;
+            
+            document.getElementById('login-status').innerHTML = `<span style="color:#1abc9c; font-weight:bold;">${statusText}</span> 접속중`;
+            document.getElementById('login-btn').style.display = 'none';
+            document.getElementById('logout-btn').style.display = 'inline-block';
+            
+            document.getElementById('write-log-btn').style.display = currentClass === 'admin' ? 'none' : 'inline-block';
+            
+            document.getElementById('crop-info-box').style.display = 'block';
+            document.getElementById('current-crop').innerText = accounts[currentClass].crop;
+            
+            renderLogs(); 
+            renderGallery();
+        }
+
+        function logout() {
+            currentClass = null;
+            document.getElementById('login-status').innerText = '관람 모드';
+            document.getElementById('login-btn').style.display = 'inline-block';
+            document.getElementById('logout-btn').style.display = 'none';
+            document.getElementById('write-log-btn').style.display = 'none';
+            document.getElementById('crop-info-box').style.display = 'none';
+            showToast("👋 로그아웃 되었습니다.");
+            renderLogs();
+            renderGallery();
+        }
+
+        function saveCrop() {
+            const newCrop = document.getElementById('edit-crop-name').value;
+            if(!newCrop) return showToast("⚠️ 작물 이름을 입력해주세요.");
+            
+            const accounts = JSON.parse(localStorage.getItem('accounts'));
+            accounts[currentClass].crop = newCrop;
+            localStorage.setItem('accounts', JSON.stringify(accounts));
+            
+            document.getElementById('current-crop').innerText = newCrop;
+            document.getElementById('editCropModal').style.display = 'none';
+            document.getElementById('edit-crop-name').value = '';
+            showToast("✅ 우리 반 재배 작물이 수정되었습니다.");
+        }
+
+        // --- 생태학급일지 권한 및 제어 ---
+        function openLogModal(id = null) {
+            document.getElementById('log-edit-id').value = '';
+            document.getElementById('log-temp').value = '';
+            document.getElementById('log-humid').value = '';
+            document.getElementById('log-water').value = '';
+            document.getElementById('log-memo').value = '';
+            
+            if (id) {
+                const logs = JSON.parse(localStorage.getItem('logs'));
+                const log = logs.find(l => l.id == id);
+                if (log) {
+                    document.getElementById('log-modal-title').innerText = "일지 수정하기";
+                    document.getElementById('log-edit-id').value = log.id;
+                    document.getElementById('log-date').value = log.date;
+                    document.getElementById('log-temp').value = log.temp;
+                    document.getElementById('log-humid').value = log.humid;
+                    document.getElementById('log-water').value = log.water;
+                    document.getElementById('log-memo').value = log.memo;
+                }
+            } else {
+                document.getElementById('log-modal-title').innerText = "오늘의 일지 작성";
+                document.getElementById('log-date').value = getTodayString();
+            }
+            document.getElementById('logModal').style.display = 'flex';
+        }
+
+        function submitLog() {
+            const id = document.getElementById('log-edit-id').value;
+            const temp = document.getElementById('log-temp').value;
+            const humid = document.getElementById('log-humid').value;
+            const water = document.getElementById('log-water').value;
+            const memo = document.getElementById('log-memo').value;
+
+            if(!temp || !humid || !water || !memo) return showToast("⚠️ 모든 항목을 빠짐없이 입력해주세요.");
+
+            const accounts = JSON.parse(localStorage.getItem('accounts'));
+            let logs = JSON.parse(localStorage.getItem('logs'));
+            
+            if (id) {
+                const idx = logs.findIndex(l => l.id == id);
+                if(idx !== -1) {
+                    logs[idx].temp = temp;
+                    logs[idx].humid = humid;
+                    logs[idx].water = water;
+                    logs[idx].memo = memo;
+                    showToast("✅ 일지가 수정되었습니다.");
+                }
+            } else {
+                logs.unshift({
+                    id: Date.now(),
+                    classId: currentClass,
+                    crop: accounts[currentClass].crop,
+                    date: getTodayString(),
+                    temp: temp,
+                    humid: humid,
+                    water: water,
+                    memo: memo
+                });
+                showToast("✅ 오늘의 일지가 등록되었습니다.");
+            }
+
+            localStorage.setItem('logs', JSON.stringify(logs));
+            document.getElementById('logModal').style.display = 'none';
+            renderLogs();
+        }
+
+        function deleteLog(id) {
+            if(!confirm("정말 이 일지를 삭제하시겠습니까?")) return;
+            let logs = JSON.parse(localStorage.getItem('logs'));
+            logs = logs.filter(l => l.id != id);
+            localStorage.setItem('logs', JSON.stringify(logs));
+            showToast("🗑️ 일지가 삭제되었습니다.");
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const logs = JSON.parse(localStorage.getItem('logs'));
+            const container = document.getElementById('log-container');
+            container.innerHTML = '';
+            
+            if(logs.length === 0) {
+                container.innerHTML = '<p style="color:#7f8c8d; text-align:center; padding: 20px 0;">아직 작성된 일지가 없습니다.<br>우리 반의 첫 일지를 작성해보세요!</p>';
+                return;
+            }
+
+            logs.forEach(log => {
+                const canEdit = (currentClass === 'admin' || currentClass === log.classId);
+                let actionHtml = canEdit ? `
+                    <div class="action-btns">
+                        <button class="btn-text-blue" onclick="openLogModal(${log.id})">수정</button>
+                        <button class="btn-text-red" onclick="deleteLog(${log.id})">삭제</button>
+                    </div>
+                ` : '';
+
+                container.innerHTML += `
+                    <div class="card">
+                        <div style="font-size:0.8rem; color:#95a5a6; margin-bottom: 5px;">📅 ${log.date}</div>
+                        <h3 style="margin:0 0 10px 0; color:#2c3e50;">${log.classId}반 생태일지</h3>
+                        <p style="margin:0 0 10px 0;"><span class="badge" style="background-color:#e8f8f5; color:#16a085;">🌱 ${log.crop}</span></p>
+                        <div style="background:#f8f9fa; padding:10px; border-radius:6px; font-size:0.9rem; margin-bottom:10px;">
+                            <span style="display:inline-block; margin-right:10px;">🌡️ 온도: <b>${log.temp}°C</b></span>
+                            <span style="display:inline-block; margin-right:10px;">💧 습도: <b>${log.humid}%</b></span>
+                            <span style="display:inline-block;">🌊 수위: <b>${log.water}</b></span>
+                        </div>
+                        <p style="margin:0; font-size:0.95rem; line-height:1.5; color:#34495e;">${log.memo.replace(/\n/g, '<br>')}</p>
+                        ${actionHtml}
+                    </div>
+                `;
+            });
+        }
+
+        // --- 시화전 암호화 및 제어 ---
+        function openGalleryModal(id = null) {
+            document.getElementById('gal-edit-id').value = '';
+            document.getElementById('gal-student-id').value = '';
+            document.getElementById('gal-name').value = '';
+            document.getElementById('gal-text').value = '';
+            document.getElementById('gal-pw').value = '';
+            document.getElementById('gal-image').value = '';
+
+            if (id) {
+                if(!checkGalleryAuth(id, "수정")) return;
+
+                const gallery = JSON.parse(localStorage.getItem('gallery'));
+                const item = gallery.find(g => g.id == id);
+                if(item) {
+                    document.getElementById('gal-modal-title').innerText = "시화전 작품 수정";
+                    document.getElementById('gal-edit-id').value = item.id;
+                    document.getElementById('gal-student-id').value = item.studentId;
+                    document.getElementById('gal-name').value = item.name;
+                    document.getElementById('gal-text').value = item.text;
+                    document.getElementById('gal-pw').value = item.password;
+                }
+            } else {
+                document.getElementById('gal-modal-title').innerText = "새 시화전 작품 등록";
+            }
+            document.getElementById('galleryModal').style.display = 'flex';
+        }
+
+        function checkGalleryAuth(id, actionName) {
+            if(currentClass === 'admin') return true;
+            
+            const gallery = JSON.parse(localStorage.getItem('gallery'));
+            const item = gallery.find(g => g.id == id);
+            
+            const inputPw = prompt(`작품을 ${actionName}하려면 글 작성 시 설정한 암호를 입력하세요:`);
+            if (inputPw === null) return false; 
+            
+            if (inputPw === item.password) {
+                return true;
+            } else {
+                showToast("❌ 게시글 암호가 일치하지 않습니다.");
+                return false;
+            }
+        }
+
+        function submitGallery() {
+            const id = document.getElementById('gal-edit-id').value;
+            const studentId = document.getElementById('gal-student-id').value;
+            const name = document.getElementById('gal-name').value;
+            const text = document.getElementById('gal-text').value;
+            const pw = document.getElementById('gal-pw').value;
+            const fileInput = document.getElementById('gal-image');
+
+            if(!studentId || !name || !text || !pw) {
+                return showToast("⚠️ 암호를 포함한 모든 텍스트 항목을 입력해주세요.");
+            }
+
+            let gallery = JSON.parse(localStorage.getItem('gallery'));
+
+            if (id) {
+                const idx = gallery.findIndex(g => g.id == id);
+                if (fileInput.files.length > 0) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        gallery[idx] = { ...gallery[idx], studentId, name, text, password: pw, image: e.target.result };
+                        finalizeGallerySubmit(gallery, "수정");
+                    };
+                    reader.readAsDataURL(fileInput.files[0]);
+                } else {
+                    gallery[idx] = { ...gallery[idx], studentId, name, text, password: pw };
+                    finalizeGallerySubmit(gallery, "수정");
+                }
+            } else {
+                if(fileInput.files.length === 0) return showToast("⚠️ 배경 사진을 꼭 첨부해주세요.");
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    gallery.unshift({
+                        id: Date.now(),
+                        studentId: studentId,
+                        name: name,
+                        text: text,
+                        password: pw,
+                        image: e.target.result
+                    });
+                    finalizeGallerySubmit(gallery, "등록");
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            }
+        }
+
+        function finalizeGallerySubmit(updatedGallery, actionText) {
+            localStorage.setItem('gallery', JSON.stringify(updatedGallery));
+            document.getElementById('galleryModal').style.display = 'none';
+            renderGallery();
+            showToast(`🌸 멋진 작품이 성공적으로 ${actionText}되었습니다!`);
+        }
+
+        function deleteGallery(id) {
+            if(!checkGalleryAuth(id, "삭제")) return;
+            if(!confirm("정말 이 작품을 삭제하시겠습니까?")) return;
+            
+            let gallery = JSON.parse(localStorage.getItem('gallery'));
+            gallery = gallery.filter(g => g.id != id);
+            localStorage.setItem('gallery', JSON.stringify(gallery));
+            showToast("🗑️ 시화전 작품이 삭제되었습니다.");
+            renderGallery();
+        }
+
+        function renderGallery() {
+            const gallery = JSON.parse(localStorage.getItem('gallery'));
+            const container = document.getElementById('gallery-container');
+            container.innerHTML = '';
+            
+            if(gallery.length === 0) {
+                container.innerHTML = '<p style="color:#7f8c8d; text-align:center; padding: 20px 0;">아직 전시된 작품이 없습니다.<br>첫 작품의 주인공이 되어보세요!</p>';
+                return;
+            }
+
+            gallery.forEach(item => {
+                container.innerHTML += `
+                    <div class="gallery-item">
+                        <img src="${item.image}" alt="시화전 이미지">
+                        <div class="gallery-info">
+                            <div style="margin-bottom: 10px;">
+                                <span class="badge">학번: ${item.studentId}</span> 
+                                <strong style="font-size:1.1rem; color:#2c3e50;">${item.name}</strong>
+                            </div>
+                            <p style="margin:0; font-style:italic; color:#555; line-height:1.5;">"${item.text.replace(/\n/g, '<br>')}"</p>
+                        </div>
+                        <div class="action-btns" style="padding: 0 15px 15px 15px; border-top: none; margin-top: auto;">
+                            <button class="btn-text-blue" onclick="openGalleryModal(${item.id})">수정</button>
+                            <button class="btn-text-red" onclick="deleteGallery(${item.id})">삭제</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 페이지 로드 시 초기화
+        window.onload = () => {
+            calculateDDays();
+            renderCalendar(calYear, calMonth);
+            renderLogs();
+            renderGallery();
+        };
+    </script>
+</body>
+</html>
